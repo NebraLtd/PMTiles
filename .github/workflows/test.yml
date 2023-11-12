@@ -45,7 +45,6 @@ jobs:
           sparse-checkout: |
             js
             serverless/cloudflare
-          sparse-checkout-cone-mode: false
 
       - name: Update PMTILES_PATH environment variable in wrangler.toml
         run: |
