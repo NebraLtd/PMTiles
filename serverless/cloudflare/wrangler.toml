@@ -10,4 +10,4 @@ r2_buckets  = [
 [vars]
 ALLOWED_ORIGINS = "https://dashboard.nebra.com,https://sense.nebra.com,*"
 CACHE_MAX_AGE = 604800
-PMTILES_PATH = "20231112/{name}.pmtiles"
+PMTILES_PATH = "20231111/{name}.pmtiles"
