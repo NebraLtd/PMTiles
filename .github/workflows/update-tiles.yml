@@ -26,14 +26,17 @@ jobs:
           echo "TODAY=$TODAY" >> $GITHUB_ENV
           echo "Today's date for filename is $TODAY"
           echo "Downloading protomaps pmtiles file."
-          wget https://build.protomaps.com/${TODAY}.pmtiles
+          wget https://build.protomaps.com/"${TODAY}".pmtiles
 
       - name: Upload tileset to Cloudflare R2
         env:
           R2_API_ENDPOINT: ${{ secrets.R2_API_ENDPOINT }}
         run: |
+          aws s3api list-objects-v2 --bucket protomaps --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com > output.json
+          OLD_MAP_TILES=$(jq -r '.Contents[].Key')
+          echo "OLD_MAP_TILES=$OLD_MAP_TILES" >> $GITHUB_ENV
           echo "Uploading file to Cloudflare R2"
-          aws s3 cp ${{ env.TODAY }}.pmtiles s3://protomaps/${{ env.TODAY }}/world.pmtiles --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
+          aws s3 cp "${{ env.TODAY }}".pmtiles s3://protomaps/"${{ env.TODAY }}"/world.pmtiles --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
 
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -45,7 +48,8 @@ jobs:
 
       - name: Update PMTILES_PATH environment variable in wrangler.toml
         run: |
-          sed -i -E "s/PMTILES_PATH=.*/PMTILES_PATH=${{ env.TODAY }}/g" serverless/cloudflare/wrangler.toml
+          PMTILES_PATH="${{ env.TODAY }}/{name}.pmtiles"
+          sed -i -E 's|PMTILES_PATH =.*|PMTILES_PATH = "'"$PMTILES_PATH"'"|g' serverless/cloudflare/wrangler.toml
           
       - name: Build & Deploy Worker
         uses: cloudflare/wrangler-action@v3
@@ -64,3 +68,7 @@ jobs:
           file-path: serverless/cloudflare/wrangler.toml
           commit-msg: Update wrangler.toml to latest version
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete old map tiles file from Cloudflare R2
+        run: |
+          aws s3 rm s3://protomaps/"${{ env.OLD_MAP_FILE }}" --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
