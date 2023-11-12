@@ -11,23 +11,56 @@ jobs:
       labels: 8core-ubuntu
     
     steps:
-      - name: Download latest tileset
+      - name: Set AWS credentials
         env:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_API_ENDPOINT: ${{ secrets.R2_API_ENDPOINT }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
           echo "Setting AWS Credentials"
           aws configure set aws_access_key_id "$R2_ACCESS_KEY_ID"
           aws configure set aws_secret_access_key "$R2_SECRET_ACCESS_KEY"
 
+      - name: Download latest tileset
+        run: |
           TODAY="$(date +'%Y%m%d')"
+          echo "TODAY=$TODAY" >> $GITHUB_ENV
           echo "Today's date for filename is $TODAY"
           echo "Downloading protomaps pmtiles file."
           wget https://build.protomaps.com/${TODAY}.pmtiles
 
+      - name: Upload tileset to Cloudflare R2
+        env:
+          R2_API_ENDPOINT: ${{ secrets.R2_API_ENDPOINT }}
+        run: |
           echo "Uploading file to Cloudflare R2"
-          aws s3 cp ${TODAY}.pmtiles s3://protomaps/world.pmtiles --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
-          # aws s3 mv s3://protomaps/world.pmtiles s3://protomaps/world-old.pmtiles --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
-          # aws s3 mv s3://protomaps/${now}.pmtiles s3://protomaps/world.pmtiles --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
-          # aws s3 rm s3://protomaps/world-old.pmtiles --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
+          aws s3 cp ${{ env.TODAY }}.pmtiles s3://protomaps/${{ env.TODAY }}/world.pmtiles --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
+
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            js
+            serverless/cloudflare
+          sparse-checkout-cone-mode: false
+
+      - name: Update PMTILES_PATH environment variable in wrangler.toml
+        run: |
+          sed -i -E "s/PMTILES_PATH=.*/PMTILES_PATH=${{ env.TODAY }}/g" serverless/cloudflare/wrangler.toml
+          
+      - name: Build & Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          preCommands: |
+            cd js
+            npm install
+            cd ../serverless/cloudflare
+            npm install
+
+      - name: Push updated wrangler.toml to repo
+        uses: test-room-7/action-update-file@v1
+        with:
+          file-path: serverless/cloudflare/wrangler.toml
+          commit-msg: Update wrangler.toml to latest version
+          github-token: ${{ secrets.GITHUB_TOKEN }}
