@@ -45,6 +45,7 @@ jobs:
           sparse-checkout: |
             js
             serverless/cloudflare
+            serverless/shared
           sparse-checkout-cone-mode: false
 
       - name: Update PMTILES_PATH environment variable in wrangler.toml
@@ -65,7 +66,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: "serverless/cloudflare"
-          command: publish
 
       - name: Push updated wrangler.toml to repo
         uses: test-room-7/action-update-file@v1
