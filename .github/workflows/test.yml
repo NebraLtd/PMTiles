@@ -26,7 +26,7 @@ jobs:
           echo "TODAY=$TODAY" >> $GITHUB_ENV
           echo "Today's date for filename is $TODAY"
           echo "Downloading protomaps pmtiles file."
-          ## wget https://build.protomaps.com/${TODAY}.pmtiles
+          # wget https://build.protomaps.com/"${TODAY}".pmtiles
           echo "test" > 20231112.pmtiles
 
       - name: Upload tileset to Cloudflare R2
