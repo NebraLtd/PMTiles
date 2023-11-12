@@ -41,22 +41,31 @@ jobs:
 
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            js
+            serverless/cloudflare
+          sparse-checkout-cone-mode: false
 
       - name: Update PMTILES_PATH environment variable in wrangler.toml
         run: |
           PMTILES_PATH="${{ env.TODAY }}/{name}.pmtiles"
           sed -i -E 's|PMTILES_PATH =.*|PMTILES_PATH = "'"$PMTILES_PATH"'"|g' serverless/cloudflare/wrangler.toml
-          
+
+      - name: Update PMTILES_PATH environment variable in wrangler.toml
+        run: |
+          cd js
+          npm install
+          cd ../serverless/cloudflare
+          npm install
+            
       - name: Build & Deploy Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_WORKERS_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          preCommands: |
-            cd js
-            npm install
-            cd ../serverless/cloudflare
-            npm install
+          workingDirectory: "serverless/cloudflare"
+            
 
       - name: Push updated wrangler.toml to repo
         uses: test-room-7/action-update-file@v1
