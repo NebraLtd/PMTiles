@@ -2,7 +2,7 @@ name: Update protomaps tiles on Cloudflare R2
 
 on:
   schedule:
-    - cron:  '15 14 1 */2 *'
+    - cron:  '45 21 1 */2 *'
   workflow_dispatch:
 
 jobs:
@@ -23,8 +23,7 @@ jobs:
 
       - name: Download latest tileset
         run: |
-          TODAY="20231111"
-          # TODAY="$(date +'%Y%m%d')"
+          TODAY="$(date +'%Y%m%d')"
           echo "TODAY=$TODAY" >> $GITHUB_ENV
           echo "Today's date for filename is $TODAY"
           echo "Downloading protomaps pmtiles file."
