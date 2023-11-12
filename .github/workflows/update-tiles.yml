@@ -16,7 +16,7 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
-          echo "Setting AWS Credentials"
+          echo "Setting AWS credentials"
           aws configure set aws_access_key_id "$R2_ACCESS_KEY_ID"
           aws configure set aws_secret_access_key "$R2_SECRET_ACCESS_KEY"
 
@@ -25,13 +25,14 @@ jobs:
           TODAY="$(date +'%Y%m%d')"
           echo "TODAY=$TODAY" >> $GITHUB_ENV
           echo "Today's date for filename is $TODAY"
-          echo "Downloading protomaps pmtiles file."
+          echo "Downloading protomaps pmtiles file"
           wget https://build.protomaps.com/"${TODAY}".pmtiles
 
       - name: Upload tileset to Cloudflare R2
         env:
           R2_API_ENDPOINT: ${{ secrets.R2_API_ENDPOINT }}
         run: |
+          echo "Getting existing tileset filename"
           aws s3api list-objects-v2 --bucket protomaps --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com > output.json
           OLD_MAP_TILES=$(jq -r '.Contents[].Key')
           echo "OLD_MAP_TILES=$OLD_MAP_TILES" >> $GITHUB_ENV
@@ -48,6 +49,7 @@ jobs:
 
       - name: Update PMTILES_PATH environment variable in wrangler.toml
         run: |
+          echo "Updating PMTILES_PATH environment variable in wrangler.toml"
           PMTILES_PATH="${{ env.TODAY }}/{name}.pmtiles"
           sed -i -E 's|PMTILES_PATH =.*|PMTILES_PATH = "'"$PMTILES_PATH"'"|g' serverless/cloudflare/wrangler.toml
           
@@ -71,4 +73,5 @@ jobs:
 
       - name: Delete old map tiles file from Cloudflare R2
         run: |
+          echo "Deleting old map tiles from Cloudflare R2"
           aws s3 rm s3://protomaps/"${{ env.OLD_MAP_FILE }}" --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
