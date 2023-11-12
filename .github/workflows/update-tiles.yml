@@ -1,0 +1,33 @@
+name: Update protomaps tiles on Cloudflare R2
+
+on:
+  schedule:
+    - cron:  '15 14 1 */2 *'
+  workflow_dispatch:
+
+jobs:
+  update-tiles:
+    runs-on: 
+      labels: 8core-ubuntu
+    
+    steps:
+      - name: Download latest tileset
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_API_ENDPOINT: ${{ secrets.R2_API_ENDPOINT }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: |
+          echo "Setting AWS Credentials"
+          aws configure set aws_access_key_id "$R2_ACCESS_KEY_ID"
+          aws configure set aws_secret_access_key "$R2_SECRET_ACCESS_KEY"
+
+          TODAY="$(date +'%Y%m%d')"
+          echo "Today's date for filename is $TODAY"
+          echo "Downloading protomaps pmtiles file."
+          wget https://build.protomaps.com/${TODAY}.pmtiles
+
+          echo "Uploading file to Cloudflare R2"
+          aws s3 cp ${TODAY}.pmtiles s3://protomaps/world.pmtiles --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
+          # aws s3 mv s3://protomaps/world.pmtiles s3://protomaps/world-old.pmtiles --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
+          # aws s3 mv s3://protomaps/${now}.pmtiles s3://protomaps/world.pmtiles --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
+          # aws s3 rm s3://protomaps/world-old.pmtiles --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
