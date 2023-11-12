@@ -34,7 +34,7 @@ jobs:
           R2_API_ENDPOINT: ${{ secrets.R2_API_ENDPOINT }}
         run: |
           aws s3api list-objects-v2 --bucket protomaps --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com > output.json
-          OLD_MAP_TILES=$(jq -r '.Contents[0].Key')
+          OLD_MAP_TILES=$(jq -r '.Contents[0].Key' output.json)
           echo "OLD_MAP_TILES=$OLD_MAP_TILES" >> $GITHUB_ENV
           echo "Uploading file to Cloudflare R2"
           aws s3 cp "${{ env.TODAY }}".pmtiles s3://protomaps/"${{ env.TODAY }}"/world.pmtiles --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
@@ -50,13 +50,16 @@ jobs:
 
       - name: Update PMTILES_PATH environment variable in wrangler.toml
         run: |
+          echo "Updating PMTILES_PATH environment variable in wrangler.toml"
           PMTILES_PATH="${{ env.TODAY }}/{name}.pmtiles"
           sed -i -E 's|PMTILES_PATH =.*|PMTILES_PATH = "'"$PMTILES_PATH"'"|g' serverless/cloudflare/wrangler.toml
 
       - name: Install dependencies
         run: |
+          echo "Installing JS dependencies"
           cd js
           npm install
+          echo "Installing cloudflare worker packages"
           cd ../serverless/cloudflare
           npm install
             
@@ -78,4 +81,5 @@ jobs:
         env:
           R2_API_ENDPOINT: ${{ secrets.R2_API_ENDPOINT }}
         run: |
+          echo "Deleting old map tiles from Cloudflare R2"
           aws s3 rm s3://protomaps/"${{ env.OLD_MAP_FILE }}" --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
