@@ -52,7 +52,7 @@ jobs:
           PMTILES_PATH="${{ env.TODAY }}/{name}.pmtiles"
           sed -i -E 's|PMTILES_PATH =.*|PMTILES_PATH = "'"$PMTILES_PATH"'"|g' serverless/cloudflare/wrangler.toml
 
-      - name: Update PMTILES_PATH environment variable in wrangler.toml
+      - name: Install dependencies
         run: |
           cd js
           npm install
