@@ -23,7 +23,8 @@ jobs:
 
       - name: Download latest tileset
         run: |
-          TODAY="$(date +'%Y%m%d')"
+          TODAY="20231111"
+          # TODAY="$(date +'%Y%m%d')"
           echo "TODAY=$TODAY" >> $GITHUB_ENV
           echo "Today's date for filename is $TODAY"
           echo "Downloading protomaps pmtiles file."
