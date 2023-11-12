@@ -75,5 +75,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Delete old map tiles file from Cloudflare R2
+        env:
+          R2_API_ENDPOINT: ${{ secrets.R2_API_ENDPOINT }}
         run: |
           aws s3 rm s3://protomaps/"${{ env.OLD_MAP_FILE }}" --endpoint-url https://"$R2_API_ENDPOINT".r2.cloudflarestorage.com
