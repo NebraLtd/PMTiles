@@ -1,0 +1,13 @@
+name = "pmtiles-cloudflare"
+main = "src/index.ts"
+compatibility_date = "2022-10-18"
+minify = true
+
+r2_buckets  = [
+  { binding = "BUCKET", preview_bucket_name = "my-bucket-development", bucket_name = "protomaps" }
+]
+
+[vars]
+ALLOWED_ORIGINS = "https://dashboard.nebra.com,https://sense.nebra.com,*"
+CACHE_MAX_AGE = 604800
+PMTILES_PATH = "20231111"
