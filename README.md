@@ -1,8 +1,9 @@
-[![npm](https://img.shields.io/npm/v/pmtiles)](https://www.npmjs.com/package/pmtiles)
-[![js minzipped size](https://img.shields.io/bundlephobia/minzip/pmtiles)](https://bundlephobia.com/package/pmtiles)
-[![pypi](https://img.shields.io/pypi/v/pmtiles)](https://pypi.org/project/pmtiles/)
+[![pmtiles npm](https://img.shields.io/npm/v/pmtiles?label=npm%20pmtiles)](https://www.npmjs.com/package/pmtiles)
+[![pmtiles pypi](https://img.shields.io/pypi/v/pmtiles?label=pypi%20pmtiles)](https://pypi.org/project/pmtiles/)
+[![rio-pmtiles pypi](https://img.shields.io/pypi/v/rio-pmtiles?label=pypi%20rio-pmtiles)](https://pypi.org/project/rio-pmtiles/)
+[![ol-pmtiles npm](https://img.shields.io/npm/v/ol-pmtiles?label=npm%20ol-pmtiles)](https://www.npmjs.com/package/ol-pmtiles)
 
-🔎 **PMTiles Viewer:** [https://protomaps.github.io/PMTiles/](https://protomaps.github.io/PMTiles/) 🔎
+🔎 **PMTiles Viewer:** [https://pmtiles.io/](https://pmtiles.io) 🔎
 
 # PMTiles
 
@@ -10,10 +11,10 @@ PMTiles is a single-file archive format for tiled data. A PMTiles archive can be
 
 * [Protomaps Blog: Dynamic Maps, Static Storage](http://protomaps.com/blog/dynamic-maps-static-storage)
 
-* [PMTiles Viewer](https://protomaps.github.io/PMTiles/) - inspect and preview PMTiles local or remote PMTiles archives. 
+* [PMTiles Viewer](https://pmtiles.io) - inspect and preview PMTiles local or remote PMTiles archives.
     * Archives on cloud storage may require CORS for the origin `https://protomaps.github.io`
 
-* [Vector Tiles Example (US Zip Codes)](https://protomaps.github.io/PMTiles/?url=https%3A%2F%2Fr2-public.protomaps.com%2Fprotomaps-sample-datasets%2Fcb_2018_us_zcta510_500k.pmtiles)
+* [Vector Tiles Example (US Zip Codes)](https://pmtiles.io/?url=https%3A%2F%2Fr2-public.protomaps.com%2Fprotomaps-sample-datasets%2Fcb_2018_us_zcta510_500k.pmtiles)
 
 
 Demos require MapLibre GL JS v1.15 or later.
@@ -26,7 +27,7 @@ See also:
 Download the `pmtiles` binary for your system at [go-pmtiles/Releases](https://github.com/protomaps/go-pmtiles/releases).
 
     pmtiles convert INPUT.mbtiles OUTPUT.pmtiles
-    pmtiles upload OUTPUT.mbtiles s3://my-bucket?region=us-west-2 // requires AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY env vars to be set
+    pmtiles upload OUTPUT.pmtiles s3://my-bucket?region=us-west-2 // requires AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY env vars to be set
 
 ## Consuming PMTiles
 

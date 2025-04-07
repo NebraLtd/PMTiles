@@ -262,6 +262,8 @@ A directory is simply a list of entries. Each entry describes either where a spe
 The number of entries in the root directory and in the leaf directories is left to the implementation and can vary depending on what the writer has optimized for (cost, bandwidth, latency, etc.).
 However, the size of the header plus the compressed size of the root directory MUST NOT exceed 16384 bytes to allow latency-optimized clients to retrieve the root directory in its entirety. Therefore, the **maximum compressed size of the root directory is 16257 bytes** (16384 bytes - 127 bytes). A sophisticated writer might need several attempts to optimize this.
 
+The order of leaf directories SHOULD be ascending by starting TileID.
+
 It is discouraged to create an archive with more than one level of leaf directories. If you are implementing a writer and discover this need, please open an issue.
 
 ### 4.1 Directory Entries
@@ -292,7 +294,7 @@ The TileID corresponds to a cumulative position on the series of [Hilbert curves
 Specifies the offset of the first byte of the tile or leaf directory. This address offset is relative to the first byte of the _tile data section_ for tile entries and relative to the first byte of the _leaf directories section_ for leaf directory entries.
 
 #### Length
-Specifies the number of bytes of this tile or leaf directory. This size always indicates the compressed size, if the tile or leaf directory is compressed.
+Specifies the number of bytes of this tile or leaf directory. This size always indicates the compressed size, if the tile or leaf directory is compressed. The length MUST be greater than 0.
 
 #### RunLength
 Specifies the number of tiles for which this entry is valid. A run length of `0` means that this entry is for a leaf directory and not for a tile.
@@ -360,7 +362,7 @@ _¹ Please refer to [Section 4.2](#42-encoding) for details on how Tile ID and O
 
 The metadata section MUST contain a valid JSON object encoded in UTF-8, which MAY include additional metadata related to the tileset that is not already covered in the header section.
 
-If the [Tile Type](#tile-type-tt) in the header has a value of _MVT Vector Tile_, the object SHOULD contain a key of `vector_layers` as described in the [TileJSON 3.0 specification](https://github.com/mapbox/tilejson-spec/blob/22f5f91e643e8980ef2656674bef84c2869fbe76/3.0.0/README.md#33-vector_layers).
+If the [Tile Type](#tile-type-tt) in the header has a value of _MVT Vector Tile_, the object MUST contain a key of `vector_layers` as described in the [TileJSON 3.0 specification](https://github.com/mapbox/tilejson-spec/blob/22f5f91e643e8980ef2656674bef84c2869fbe76/3.0.0/README.md#33-vector_layers).
 
 Additionally, this specification defines the following keys, which MAY be included in the object:
 

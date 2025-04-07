@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
-import { PMTiles } from "../../js/index";
+import { useState } from "react";
+import { PMTiles } from "../../js/src/index";
 import { styled } from "./stitches.config";
 
-import Inspector from "./Inspector";
 import MaplibreMap from "./MaplibreMap";
 import Metadata from "./Metadata";
 
-import { MagnifyingGlassIcon, ImageIcon } from "@radix-ui/react-icons";
+import { MagnifyingGlassIcon } from "@radix-ui/react-icons";
 import * as ToolbarPrimitive from "@radix-ui/react-toolbar";
 
 const StyledToolbar = styled(ToolbarPrimitive.Root, {
@@ -28,7 +27,7 @@ const itemStyles = {
   fontSize: "$2",
   alignItems: "center",
   "&:hover": { backgroundColor: "$hover", color: "$white" },
-  "&:focus": { position: "relative", boxShadow: `0 0 0 2px blue` },
+  "&:focus": { position: "relative", boxShadow: "0 0 0 2px blue" },
 };
 
 const StyledLink = styled(
@@ -71,15 +70,13 @@ const ToolbarToggleGroup = StyledToggleGroup;
 const ToolbarToggleItem = StyledToggleItem;
 
 function Loader(props: { file: PMTiles; mapHashPassed: boolean }) {
-  let [tab, setTab] = useState("maplibre");
+  const [tab, setTab] = useState("maplibre");
 
-  let view;
+  let view: any;
   if (tab === "maplibre") {
     view = (
       <MaplibreMap file={props.file} mapHashPassed={props.mapHashPassed} />
     );
-  } else if (tab === "inspector") {
-    view = <Inspector file={props.file} />;
   } else {
     view = <Metadata file={props.file} />;
   }
@@ -97,13 +94,13 @@ function Loader(props: { file: PMTiles; mapHashPassed: boolean }) {
           <ToolbarToggleItem value="maplibre" aria-label="Right aligned">
             Map View
           </ToolbarToggleItem>
-          <ToolbarToggleItem value="inspector" aria-label="Left aligned">
-            <MagnifyingGlassIcon /> Tile Inspector
-          </ToolbarToggleItem>
           <ToolbarToggleItem value="metadata" aria-label="Left aligned">
             Metadata
           </ToolbarToggleItem>
         </ToolbarToggleGroup>
+        <ToolbarLink href={`tileinspect/?url=${props.file.source.getKey()}`}>
+          🔎 Tile Inspector
+        </ToolbarLink>
         <ToolbarLink css={{ marginRight: 10 }}>
           {props.file.source.getKey()}
         </ToolbarLink>

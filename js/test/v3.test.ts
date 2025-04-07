@@ -1,21 +1,65 @@
-import { test } from "node:test";
-import assert from "node:assert";
 import fs from "fs";
+import assert from "node:assert";
+import { afterEach, beforeEach, describe, it, test } from "node:test";
+import { http, HttpResponse } from "msw";
+import { setupServer } from "msw/node";
 
 import {
-  Entry,
-  zxyToTileId,
-  tileIdToZxy,
-  findTile,
-  readVarint,
-  SharedPromiseCache,
   BufferPosition,
-  Source,
-  RangeResponse,
-  EtagMismatch,
+  Entry,
   PMTiles,
+  RangeResponse,
+  SharedPromiseCache,
+  Source,
+  TileType,
+  findTile,
   getUint64,
-} from "../index";
+  readVarint,
+  tileIdToZxy,
+  tileTypeExt,
+  zxyToTileId,
+} from "../src/index";
+
+class MockServer {
+  etag?: string;
+  numRequests: number;
+  lastCache?: string;
+
+  reset() {
+    this.numRequests = 0;
+    this.etag = undefined;
+  }
+
+  constructor() {
+    this.numRequests = 0;
+    this.etag = undefined;
+    const serverBuffer = fs.readFileSync("test/data/test_fixture_1.pmtiles");
+    const server = setupServer(
+      http.get(
+        "http://localhost:1337/example.pmtiles",
+        ({ request, params }) => {
+          this.lastCache = request.cache;
+          this.numRequests++;
+          const range = request.headers.get("range")?.substr(6).split("-");
+          if (!range) {
+            throw new Error("invalid range");
+          }
+          const offset = +range[0];
+          const length = +range[1];
+          const body = serverBuffer.slice(offset, offset + length - 1);
+          return new HttpResponse(body, {
+            status: 206,
+            statusText: "OK",
+            headers: { etag: this.etag } as HeadersInit,
+          });
+        }
+      )
+    );
+    server.listen({ onUnhandledRequest: "error" });
+  }
+}
+
+const mockserver = new MockServer();
 
 test("varint", () => {
   let b: BufferPosition = {
@@ -65,8 +109,8 @@ test("a lot of tiles", () => {
 });
 
 test("tile extremes", () => {
-  for (var z = 0; z < 27; z++) {
-    const dim = Math.pow(2, z) - 1;
+  for (let z = 0; z < 27; z++) {
+    const dim = 2 ** z - 1;
     const tl = tileIdToZxy(zxyToTileId(z, 0, 0));
     assert.deepEqual([z, 0, 0], tl);
     const tr = tileIdToZxy(zxyToTileId(z, dim, 0));
@@ -101,9 +145,9 @@ test("tile search for first entry == id", () => {
   const entries: Entry[] = [
     { tileId: 100, offset: 1, length: 1, runLength: 1 },
   ];
-  const entry = findTile(entries, 100)!;
-  assert.strictEqual(entry.offset, 1);
-  assert.strictEqual(entry.length, 1);
+  const entry = findTile(entries, 100);
+  assert.strictEqual(entry?.offset, 1);
+  assert.strictEqual(entry?.length, 1);
   assert.strictEqual(findTile(entries, 101), null);
 });
 
@@ -112,32 +156,32 @@ test("tile search with runlength", () => {
     { tileId: 3, offset: 3, length: 1, runLength: 2 },
     { tileId: 5, offset: 5, length: 1, runLength: 2 },
   ];
-  const entry = findTile(entries, 4)!;
-  assert.strictEqual(entry.offset, 3);
+  const entry = findTile(entries, 4);
+  assert.strictEqual(entry?.offset, 3);
 });
 
 test("tile search with multiple tile entries", () => {
   let entries: Entry[] = [{ tileId: 100, offset: 1, length: 1, runLength: 2 }];
-  let entry = findTile(entries, 101)!;
-  assert.strictEqual(entry.offset, 1);
-  assert.strictEqual(entry.length, 1);
+  let entry = findTile(entries, 101);
+  assert.strictEqual(entry?.offset, 1);
+  assert.strictEqual(entry?.length, 1);
 
   entries = [
     { tileId: 100, offset: 1, length: 1, runLength: 1 },
     { tileId: 150, offset: 2, length: 2, runLength: 2 },
   ];
-  entry = findTile(entries, 151)!;
-  assert.strictEqual(entry.offset, 2);
-  assert.strictEqual(entry.length, 2);
+  entry = findTile(entries, 151);
+  assert.strictEqual(entry?.offset, 2);
+  assert.strictEqual(entry?.length, 2);
 
   entries = [
     { tileId: 50, offset: 1, length: 1, runLength: 2 },
     { tileId: 100, offset: 2, length: 2, runLength: 1 },
     { tileId: 150, offset: 3, length: 3, runLength: 1 },
   ];
-  entry = findTile(entries, 51)!;
-  assert.strictEqual(entry.offset, 1);
-  assert.strictEqual(entry.length, 1);
+  entry = findTile(entries, 51);
+  assert.strictEqual(entry?.offset, 1);
+  assert.strictEqual(entry?.length, 1);
 });
 
 test("leaf search", () => {
@@ -145,8 +189,8 @@ test("leaf search", () => {
     { tileId: 100, offset: 1, length: 1, runLength: 0 },
   ];
   const entry = findTile(entries, 150);
-  assert.strictEqual(entry!.offset, 1);
-  assert.strictEqual(entry!.length, 1);
+  assert.strictEqual(entry?.offset, 1);
+  assert.strictEqual(entry?.length, 1);
 });
 
 // inefficient method only for testing
@@ -249,12 +293,8 @@ test("cache getDirectory", async () => {
     "1"
   );
 
-  let cache = new SharedPromiseCache(6400, false);
-  let header = await cache.getHeader(source);
-  assert.strictEqual(cache.cache.size, 1);
-
-  cache = new SharedPromiseCache(6400, true);
-  header = await cache.getHeader(source);
+  const cache = new SharedPromiseCache(6400);
+  const header = await cache.getHeader(source);
 
   // prepopulates the root directory
   assert.strictEqual(cache.cache.size, 2);
@@ -292,69 +332,33 @@ test("multiple sources in a single cache", async () => {
   assert.strictEqual(cache.cache.size, 4);
 });
 
-test("etags are part of key", async () => {
-  const cache = new SharedPromiseCache(6400, false);
-  const source = new TestNodeFileSource(
-    "test/data/test_fixture_1.pmtiles",
-    "1"
-  );
-  source.etag = "etag_1";
-  let header = await cache.getHeader(source);
-  assert.strictEqual(header.etag, "etag_1");
-
-  source.etag = "etag_2";
-
-  assert.rejects(async () => {
-    await cache.getDirectory(
-      source,
-      header.rootDirectoryOffset,
-      header.rootDirectoryLength,
-      header
-    );
-  });
-
-  cache.invalidate(source, "etag_2");
-  header = await cache.getHeader(source);
-  assert.ok(
-    await cache.getDirectory(
-      source,
-      header.rootDirectoryOffset,
-      header.rootDirectoryLength,
-      header
-    )
-  );
+test("etag change", async () => {
+  const p = new PMTiles("http://localhost:1337/example.pmtiles");
+  const tile = await p.getZxy(0, 0, 0);
+  // header + tile
+  assert.strictEqual(2, mockserver.numRequests);
+  mockserver.etag = "etag_2";
+  await p.getZxy(0, 0, 0);
+  // tile + header again + tile
+  assert.strictEqual(5, mockserver.numRequests);
 });
 
-test("soft failure on etag weirdness", async () => {
-  const cache = new SharedPromiseCache(6400, false);
-  const source = new TestNodeFileSource(
-    "test/data/test_fixture_1.pmtiles",
-    "1"
-  );
-  source.etag = "etag_1";
-  let header = await cache.getHeader(source);
-  assert.strictEqual(header.etag, "etag_1");
-
-  source.etag = "etag_2";
-
-  assert.rejects(async () => {
-    await cache.getDirectory(
-      source,
-      header.rootDirectoryOffset,
-      header.rootDirectoryLength,
-      header
-    );
-  });
-
-  source.etag = "etag_1";
-  cache.invalidate(source, "etag_2");
-
-  header = await cache.getHeader(source);
-  assert.strictEqual(header.etag, undefined);
+test("weak etags", async () => {
+  mockserver.reset();
+  const p = new PMTiles("http://localhost:1337/example.pmtiles");
+  const tile = await p.getZxy(0, 0, 0);
+  // header + tile
+  assert.strictEqual(2, mockserver.numRequests);
+  mockserver.etag = "W/weak_etag";
+  await p.getZxy(0, 0, 0);
+  assert.strictEqual(3, mockserver.numRequests);
 });
+
+// handle < 16384 bytes archive case
+// handle DigitalOcean case returning 200 instead of 206
 
 test("cache pruning by byte size", async () => {
-  const cache = new SharedPromiseCache(2, false);
+  const cache = new SharedPromiseCache(2);
   cache.cache.set("0", { lastUsed: 0, data: Promise.resolve([]) });
   cache.cache.set("1", { lastUsed: 1, data: Promise.resolve([]) });
   cache.cache.set("2", { lastUsed: 2, data: Promise.resolve([]) });
@@ -372,20 +376,62 @@ test("pmtiles get metadata", async () => {
   );
   const p = new PMTiles(source);
   const metadata = await p.getMetadata();
-  assert.ok(metadata.name);
+  assert.ok((metadata as { name: string }).name);
 });
 
 // echo '{"type":"Polygon","coordinates":[[[0,0],[0,1],[1,0],[0,0]]]}' | ./tippecanoe -zg -o test_fixture_2.pmtiles
-test("pmtiles handle retries", async () => {
+
+test("get file extension", async () => {
+  assert.equal("", tileTypeExt(TileType.Unknown));
+  assert.equal(".mvt", tileTypeExt(TileType.Mvt));
+  assert.equal(".png", tileTypeExt(TileType.Png));
+  assert.equal(".jpg", tileTypeExt(TileType.Jpeg));
+  assert.equal(".webp", tileTypeExt(TileType.Webp));
+  assert.equal(".avif", tileTypeExt(TileType.Avif));
+});
+
+interface TileJsonLike {
+  tilejson: string;
+  scheme: string;
+  tiles: string[];
+  description?: string;
+  name?: string;
+  attribution?: string;
+  version?: string;
+}
+
+test("pmtiles get TileJSON", async () => {
   const source = new TestNodeFileSource(
     "test/data/test_fixture_1.pmtiles",
     "1"
   );
-  source.etag = "1";
   const p = new PMTiles(source);
-  const metadata = await p.getMetadata();
-  assert.ok(metadata.name);
-  source.etag = "2";
-  source.replaceData("test/data/test_fixture_2.pmtiles");
-  assert.ok(await p.getZxy(0, 0, 0));
+  const tilejson = (await p.getTileJson(
+    "https://example.com/foo"
+  )) as TileJsonLike;
+  assert.equal("3.0.0", tilejson.tilejson);
+  assert.equal("xyz", tilejson.scheme);
+  assert.equal("https://example.com/foo/{z}/{x}/{y}.mvt", tilejson.tiles[0]);
+  assert.equal(undefined, tilejson.attribution);
+  assert.equal("test_fixture_1.pmtiles", tilejson.description);
+  assert.equal("test_fixture_1.pmtiles", tilejson.name);
+  assert.equal("2", tilejson.version);
+});
+
+describe("user agent", async () => {
+  beforeEach(() => {
+    // @ts-ignore
+    global.navigator = { userAgent: "Windows Chrome" };
+  });
+
+  afterEach(() => {
+    // @ts-ignore
+    global.navigator.userAgent = undefined;
+  });
+
+  it("works around caching bug on chrome on windows", async () => {
+    const p = new PMTiles("http://localhost:1337/example.pmtiles");
+    await p.getZxy(0, 0, 0);
+    assert.equal("no-store", mockserver.lastCache);
+  });
 });

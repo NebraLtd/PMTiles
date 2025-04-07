@@ -1,8 +1,7 @@
-import { useState, Dispatch, SetStateAction, useCallback } from "react";
-import maplibregl from "maplibre-gl";
-import { PMTiles, FileAPISource } from "../../js/index";
-import { styled } from "./stitches.config";
+import { Dispatch, SetStateAction, useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { FileSource, PMTiles } from "../../js/src/index";
+import { styled } from "./stitches.config";
 
 import * as LabelPrimitive from "@radix-ui/react-label";
 
@@ -13,7 +12,7 @@ const Input = styled("input", {
   justifyContent: "center",
   fontSize: "$3",
   fontFamily: "$sans",
-  "&:focus": { boxShadow: `0 0 0 1px black` },
+  "&:focus": { boxShadow: "0 0 0 1px black" },
   width: "100%",
   border: "1px solid $white",
   padding: "$1",
@@ -97,26 +96,26 @@ const ExampleList = styled("div", {
 });
 
 const EXAMPLE_FILES = [
-  "https://r2-public.protomaps.com/protomaps-sample-datasets/protomaps-basemap-opensource-20230408.pmtiles",
-  "https://protomaps.github.io/PMTiles/protomaps(vector)ODbL_firenze.pmtiles",
-  "https://protomaps.github.io/PMTiles/stamen_toner(raster)CC-BY+ODbL_z3.pmtiles",
+  "https://demo-bucket.protomaps.com/v4.pmtiles",
+  "https://data.source.coop/protomaps/openstreetmap/v4.pmtiles",
+  "https://r2-public.protomaps.com/protomaps-sample-datasets/tilezen.pmtiles",
   "https://r2-public.protomaps.com/protomaps-sample-datasets/cb_2018_us_zcta510_500k.pmtiles",
-  "https://protomaps.github.io/PMTiles/usgs-mt-whitney-8-15-webp-512.pmtiles",
+  "https://pmtiles.io/usgs-mt-whitney-8-15-webp-512.pmtiles",
 ];
 
 function Start(props: {
   setFile: Dispatch<SetStateAction<PMTiles | undefined>>;
 }) {
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    props.setFile(new PMTiles(new FileAPISource(acceptedFiles[0])));
+    props.setFile(new PMTiles(new FileSource(acceptedFiles[0])));
   }, []);
 
   const { acceptedFiles, getRootProps, getInputProps } = useDropzone({
     onDrop,
   });
 
-  let [remoteUrl, setRemoteUrl] = useState<string>("");
-  let [selectedExample, setSelectedExample] = useState<number | null>(1);
+  const [remoteUrl, setRemoteUrl] = useState<string>("");
+  const [selectedExample, setSelectedExample] = useState<number | null>(1);
 
   const onRemoteUrlChangeHandler = (
     event: React.ChangeEvent<HTMLInputElement>
@@ -142,7 +141,7 @@ function Start(props: {
         id="remoteUrl"
         placeholder="https://example.com/my_archive.pmtiles"
         onChange={onRemoteUrlChangeHandler}
-      ></Input>
+      />
       <Button color="gray" onClick={onSubmit} disabled={!remoteUrl.trim()}>
         Load URL
       </Button>
